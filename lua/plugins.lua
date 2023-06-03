@@ -142,15 +142,38 @@ return require('packer').startup(function(use)
             end
             local cmp = require("cmp")
             local luasnip = require("luasnip")
+            cmp.setup.filetype('gitcommit', {
+                sources = cmp.config.sources({
+                    { name = 'git' },
+                }, {
+                    { name = 'buffer' }
+                })
+            })
+
+            cmp.setup.cmdline({'/' , '?' }, {
+                mapping = cmp.mapping.preset.cmdline(),
+                sources = {
+                    { name = 'buffer' }
+                }
+            })
+
+            cmp.setup.cmdline(':', {
+                mapping = cmp.mapping.preset.cmdline(),
+                sources = cmp.config.sources({
+                    { name = 'path' }
+                }, {
+                    { name = 'cmdline' }
+                })
+            })
             cmp.setup({
                 snippet = { 
                     expand = function(args)
                         luasnip.lsp_expand(args.body)
                     end},
-                mapping = cmp.mapping.preset.insert({
-                      ['<C-b>'] = cmp.mapping.scroll_docs(-4),
-                      ['<C-f>'] = cmp.mapping.scroll_docs(4),
-                      ['<C-e>'] = cmp.mapping.abort(),
+                mapping = cmp.mapping.preset.insert({ 
+                    ['<C-b>'] = cmp.mapping.scroll_docs(-4),
+                    ['<C-f>'] = cmp.mapping.scroll_docs(4), 
+                    ['<C-e>'] = cmp.mapping.abort(),
                     ["<CR>"] = cmp.mapping({
                              i = function(fallback)
                                if cmp.visible() and cmp.get_selected_entry() then
