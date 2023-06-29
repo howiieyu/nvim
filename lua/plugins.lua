@@ -26,6 +26,28 @@ vim.g.mapleader = " "
 return require('packer').startup(function(use)
 	use { 'wbthomason/packer.nvim' }
 
+    use {
+        'numToStr/Navigator.nvim',
+        config = function()
+            require('Navigator').setup()
+
+            vim.keymap.set({'n', 't'}, '<A-h>', '<CMD>NavigatorLeft<CR>')
+            vim.keymap.set({'n', 't'}, '<A-l>', '<CMD>NavigatorRight<CR>')
+            vim.keymap.set({'n', 't'}, '<A-k>', '<CMD>NavigatorUp<CR>')
+            vim.keymap.set({'n', 't'}, '<A-j>', '<CMD>NavigatorDown<CR>')
+            vim.keymap.set({'n', 't'}, '<A-p>', '<CMD>NavigatorPrevious<CR>')
+        end
+    }
+
+    use { 
+        'ziglang/zig.vim',
+        ft = {"zig"},
+        config = function()
+            local lspconfig = require("lspconfig")
+            lspconfig.zls.setup {}
+        end
+    }
+
     use { 'h-hg/fcitx.nvim' }
 
     use { 
@@ -65,18 +87,19 @@ return require('packer').startup(function(use)
                 gofmt = 'gofumpt',
                 max_line_len = 80,
                 test_dir = '',
-                lsp_cfg = false,
+                lsp_cfg = true,
                 lsp_gofumpt = true,
                 dap_debug = true,
                 dap_debug_ui = true,
             })
-            local cfg = require'go.lsp'.config()
-            require('lspconfig').gopls.setup(cfg)
+            -- local cfg = require'go.lsp'.config()
+            -- require('lspconfig').gopls.setup(cfg)
 
             -- local protocol = require 'vim.lsp.protocol'
 
             vim.cmd("autocmd FileType go nmap <Leader>lf :GoLint<CR>")
             vim.cmd("autocmd FileType go nmap <Leader>gc :lua require('go.comment').gen()<CR>")
+            vim.cmd("autocmd FileType go nmap <Leader>rn :GoRename<CR>")
             vim.cmd("autocmd FileType go nmap <Leader>tf :GoTestFunc<CR>")
 
             local format_sync_grp = vim.api.nvim_create_augroup("GoImport", {})
