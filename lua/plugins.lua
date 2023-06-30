@@ -76,15 +76,16 @@ return require('packer').startup(function(use)
         end
     }
 
+
 	use {
         'ray-x/go.nvim',
         config = function()
+            require("mason").setup()
+            require("mason-lspconfig").setup()
             local cap = require('cmp_nvim_lsp').default_capabilities(vim.lsp.protocol.make_client_capabilities())
 
-            require 'go'.setup({
+            require 'go'.setup{
                 capabilities = cap,
-                goimports = 'gopls',
-                gofmt = 'gofumpt',
                 max_line_len = 80,
                 test_dir = '',
                 lsp_cfg = true,
@@ -92,15 +93,13 @@ return require('packer').startup(function(use)
                 dap_debug = true,
                 dap_debug_ui = true,
             })
-            -- local cfg = require'go.lsp'.config()
-            -- require('lspconfig').gopls.setup(cfg)
-
-            -- local protocol = require 'vim.lsp.protocol'
 
             vim.cmd("autocmd FileType go nmap <Leader>lf :GoLint<CR>")
             vim.cmd("autocmd FileType go nmap <Leader>gc :lua require('go.comment').gen()<CR>")
             vim.cmd("autocmd FileType go nmap <Leader>rn :GoRename<CR>")
             vim.cmd("autocmd FileType go nmap <Leader>tf :GoTestFunc<CR>")
+            vim.cmd("autocmd FileType go nmap <Leader>lr :GoRename<CR>")
+            vim.cmd("autocmd FileType go nmap <Leader>ls :LspStart<CR>")
 
             local format_sync_grp = vim.api.nvim_create_augroup("GoImport", {})
             vim.api.nvim_create_autocmd("BufWritePre", {
@@ -112,22 +111,13 @@ return require('packer').startup(function(use)
             })
 
         end,
-        ft = { 'go' },
+        ft = { 'go', 'gomod' },
+        after = {
+            "mason.nvim",
+            "mason-lspconfig.nvim",
+        },
         cmd = {
-              'GoFmt',
-              'GoBuild',
-              'GoAltV',
-              'GoBreakToggle',
-              'GoImpl',
-              'GoRun',
-              'GoInstall',
-              'GoTest',
-              'GoTestFunc',
-              'GoTestCompile',
-              'GoCoverage',
-              'GoCoverageToggle',
-              'GoGet',
-              'GoModifyTags',
+            'GoModInit',
         },
     }
     use {
@@ -139,7 +129,9 @@ return require('packer').startup(function(use)
     use 'theHamsta/nvim-dap-virtual-text'
 	use 'ray-x/guihua.lua'
 	use 'neovim/nvim-lspconfig'
-	use 'nvim-treesitter/nvim-treesitter'
+	use {
+        'nvim-treesitter/nvim-treesitter', 
+    }
 
     use({
     	"L3MON4D3/LuaSnip",
@@ -249,4 +241,7 @@ return require('packer').startup(function(use)
             })
         end
     }
+    if packer_bootstrap then
+        require('packer').sync()
+    end
 end)
