@@ -92,7 +92,7 @@ return require('packer').startup(function(use)
                 lsp_gofumpt = true,
                 dap_debug = true,
                 dap_debug_ui = true,
-            })
+            }
 
             vim.cmd("autocmd FileType go nmap <Leader>lf :GoLint<CR>")
             vim.cmd("autocmd FileType go nmap <Leader>gc :lua require('go.comment').gen()<CR>")
