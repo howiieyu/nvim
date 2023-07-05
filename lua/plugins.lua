@@ -47,7 +47,59 @@ return require('packer').startup(function(use)
             lspconfig.zls.setup {}
         end
     }
-
+    use { 
+        'TimUntersberger/neogit', 
+        requires = 'nvim-lua/plenary.nvim',
+        config = function()
+            require('neogit').setup()
+        end
+    }
+    use {
+        'lewis6991/gitsigns.nvim',
+        config = function()
+            require('gitsigns').setup({
+                signs = {
+                  add          = { text = '│' },
+                  change       = { text = '│' },
+                  delete       = { text = '_' },
+                  topdelete    = { text = '‾' },
+                  changedelete = { text = '~' },
+                  untracked    = { text = '┆' },
+                },
+                signcolumn = true,  -- Toggle with `:Gitsigns toggle_signs`
+                numhl      = false, -- Toggle with `:Gitsigns toggle_numhl`
+                linehl     = false, -- Toggle with `:Gitsigns toggle_linehl`
+                word_diff  = false, -- Toggle with `:Gitsigns toggle_word_diff`
+                watch_gitdir = {
+                  follow_files = true
+                },
+                attach_to_untracked = true,
+                current_line_blame = false, -- Toggle with `:Gitsigns toggle_current_line_blame`
+                current_line_blame_opts = {
+                  virt_text = true,
+                  virt_text_pos = 'eol', -- 'eol' | 'overlay' | 'right_align'
+                  delay = 1000,
+                  ignore_whitespace = false,
+                },
+                current_line_blame_formatter = '<author>, <author_time:%Y-%m-%d> - <summary>',
+                sign_priority = 6,
+                update_debounce = 100,
+                status_formatter = nil, -- Use default
+                max_file_length = 40000, -- Disable if file is longer than this (in lines)
+                preview_config = {
+                  -- Options passed to nvim_open_win
+                  border = 'single',
+                  style = 'minimal',
+                  relative = 'cursor',
+                  row = 0,
+                  col = 1
+                },
+                yadm = {
+                  enable = false
+                },
+            })
+        end,
+    }
     use { 'h-hg/fcitx.nvim' }
 
     use { 
@@ -77,26 +129,14 @@ return require('packer').startup(function(use)
     }
 
 
-	use {
+	use ({
         'ray-x/go.nvim',
         config = function()
-            require("mason").setup()
             require("mason-lspconfig").setup()
             local cap = require('cmp_nvim_lsp').default_capabilities(vim.lsp.protocol.make_client_capabilities())
 
-            require 'go'.setup{
-                capabilities = cap,
-                max_line_len = 80,
-                test_dir = '',
-                lsp_cfg = true,
-                lsp_gofumpt = true,
-                dap_debug = true,
-                dap_debug_ui = true,
-            }
-
             vim.cmd("autocmd FileType go nmap <Leader>lf :GoLint<CR>")
             vim.cmd("autocmd FileType go nmap <Leader>gc :lua require('go.comment').gen()<CR>")
-            vim.cmd("autocmd FileType go nmap <Leader>rn :GoRename<CR>")
             vim.cmd("autocmd FileType go nmap <Leader>tf :GoTestFunc<CR>")
             vim.cmd("autocmd FileType go nmap <Leader>lr :GoRename<CR>")
             vim.cmd("autocmd FileType go nmap <Leader>ls :LspStart<CR>")
@@ -110,16 +150,39 @@ return require('packer').startup(function(use)
                 group = format_sync_grp,
             })
 
+
+            require("go").setup({
+                goimport = 'gopls',
+                lsp_cfg = true,
+                -- {
+                --   handlers = {
+                --     ['textDocument/hover'] = vim.lsp.with(vim.lsp.handlers.hover, { border = 'double' }),
+                --     ['textDocument/signatureHelp'] = vim.lsp.with(vim.lsp.handlers.signature_help, { border = 'round' }),
+                --   },
+                -- }, -- false: do nothing
+                run_in_floaterm = true,
+                capabilities = cap,
+                goimport = 'gopls', -- if set to 'gopls' will use golsp format
+                gofmt = 'gofumpt', -- if set to gopls will use golsp format
+                max_line_len = 120,
+                lsp_document_formatting = true,
+                luasnip = true,
+            })
+            cfg = require("go.lsp").config()
+            require("lspconfig").gopls.setup(cfg)
         end,
-        ft = { 'go', 'gomod' },
-        after = {
-            "mason.nvim",
-            "mason-lspconfig.nvim",
+        requires = {
+          'mfussenegger/nvim-dap', -- Debug Adapter Protocol
+          'rcarriga/nvim-dap-ui',
+          'theHamsta/nvim-dap-virtual-text',
+          'ray-x/guihua.lua',
         },
+        ft = { 'go', 'gomod' },
         cmd = {
             'GoModInit',
         },
-    }
+    })
+
     use {
     	"windwp/nvim-autopairs",
         config = function() require("nvim-autopairs").setup {} end
