@@ -128,18 +128,94 @@ return require('packer').startup(function(use)
         end
     }
 
+  use {
+      "simrat39/rust-tools.nvim",
+      config = function()
+        vim.o.completeopt = "menuone,noinsert,noselect"
+        
+        vim.opt.shortmess = vim.opt.shortmess + "c"
+        
+        rt = require("rust-tools")
+        
+        local function on_attach(client, bufnr)
+          -- This callback is called when the LSP is atttached/enabled for this buffer
+          -- we could set keymaps related to LSP, etc here.
+           -- Hover actions
+              vim.keymap.set("n", "<C-space>", rt.hover_actions.hover_actions, { buffer = bufnr })
+              -- Code action groups
+              vim.keymap.set("n", "<Leader>a", rt.code_action_group.code_action_group, { buffer = bufnr })
+        end
+        
+        -- Configure LSP through rust-tools.nvim plugin.
+        -- rust-tools will configure and enable certain LSP features for us.
+        -- See https://github.com/simrat39/rust-tools.nvim#configuration
+        local opts = {
+          tools = {
+            runnables = {
+              use_telescope = true,
+            },
+            inlay_hints = {
+              auto = true,
+              show_parameter_hints = false,
+              parameter_hints_prefix = "",
+              other_hints_prefix = "",
+            },
+          },
+        
+          -- all the opts to send to nvim-lspconfig
+          -- these override the defaults set by rust-tools.nvim
+          -- see https://github.com/neovim/nvim-lspconfig/blob/master/CONFIG.md#rust_analyzer
+          server = {
+            -- on_attach is a callback called when the language server attachs to the buffer
+            on_attach = on_attach,
+            settings = {
+              -- to enable rust-analyzer settings visit:
+              -- https://github.com/rust-analyzer/rust-analyzer/blob/master/docs/user/generated_config.adoc
+              ["rust-analyzer"] = {
+                -- enable clippy on save
+                checkOnSave = {
+                  command = "clippy",
+                },
+              },
+            },
+          },
+        }
+        opts.server = server
+        
+        require("rust-tools").setup(opts)
+      end,
+
+      requires = {
+        "neovim/nvim-lspconfig",
+      },
+  }
+
+    use { 
+        "jose-elias-alvarez/typescript.nvim",
+        config = function() 
+            require("typescript").setup({})
+
+            vim.keymap.set('n', '<space>e', vim.diagnostic.open_float)
+            vim.keymap.set('n', '[d', vim.diagnostic.goto_prev)
+            vim.keymap.set('n', ']d', vim.diagnostic.goto_next)
+            vim.keymap.set('n', '<space>q', vim.diagnostic.setloclist)
+        end
+    }
+
 
 	use ({
-        'ray-x/go.nvim',
+        'howiieyu/go.nvim',
         config = function()
             require("mason-lspconfig").setup()
             local cap = require('cmp_nvim_lsp').default_capabilities(vim.lsp.protocol.make_client_capabilities())
 
-            vim.cmd("autocmd FileType go nmap <Leader>lf :GoLint<CR>")
-            vim.cmd("autocmd FileType go nmap <Leader>gc :lua require('go.comment').gen()<CR>")
-            vim.cmd("autocmd FileType go nmap <Leader>tf :GoTestFunc<CR>")
-            vim.cmd("autocmd FileType go nmap <Leader>lr :GoRename<CR>")
-            vim.cmd("autocmd FileType go nmap <Leader>ls :LspStart<CR>")
+            vim.api.nvim_set_keymap("n", "<Leader>lf", ":GoLint<CR>", {noremap = true})
+            vim.api.nvim_set_keymap("n", "<Leader>gc", ":lua require('go.comment').gen()<CR>", {noremap = true})
+            vim.api.nvim_set_keymap("n", "<Leader>tf", ":GoTestFunc<CR>", {noremap = true})
+            vim.api.nvim_set_keymap("n", "<Leader>lr", ":GoRename<CR>", {noremap = true})
+            vim.api.nvim_set_keymap("n", "<Leader>al", ":GoAlt<CR>", {noremap = true})
+            vim.api.nvim_set_keymap("n", "<Leader>as", ":GoAltS<CR>", {noremap = true})
+            vim.api.nvim_set_keymap("n", "<Leader>av", ":GoAltV<CR>", {noremap = true})
 
             local format_sync_grp = vim.api.nvim_create_augroup("GoImport", {})
             vim.api.nvim_create_autocmd("BufWritePre", {
@@ -150,16 +226,18 @@ return require('packer').startup(function(use)
                 group = format_sync_grp,
             })
 
+            -- local null_ls = require("null-ls")
+            -- local gotest = require("go.null_ls").gotest()
+            -- local gotest_codeaction = require("go.null_ls").gotest_action()
+            -- local golangci_lint = require("go.null_ls").golangci_lint()
+            -- null_ls.register(gotest)
+            -- null_ls.register(gotest_codeaction)
+            -- null_ls.register(golangci_lint)
+
 
             require("go").setup({
                 goimport = 'gopls',
-                lsp_cfg = true,
-                -- {
-                --   handlers = {
-                --     ['textDocument/hover'] = vim.lsp.with(vim.lsp.handlers.hover, { border = 'double' }),
-                --     ['textDocument/signatureHelp'] = vim.lsp.with(vim.lsp.handlers.signature_help, { border = 'round' }),
-                --   },
-                -- }, -- false: do nothing
+                lsp_cfg = false,
                 run_in_floaterm = true,
                 capabilities = cap,
                 goimport = 'gopls', -- if set to 'gopls' will use golsp format
@@ -184,6 +262,29 @@ return require('packer').startup(function(use)
     })
 
     use {
+        "jose-elias-alvarez/null-ls.nvim",
+        config = function()
+            local null_ls = require("null-ls")
+            
+            local sources = {
+                null_ls.builtins.formatting.stylua,
+                null_ls.builtins.formatting.golines.with({
+                    extra_args = {
+                        "--max-len=180",
+                        "--base-formatter=gofumpt",
+                    },
+                }),
+
+                -- null_ls.builtins.diagnostics.eslint,
+                null_ls.builtins.diagnostics.revive,
+                null_ls.builtins.completion.spell,
+            }
+
+            null_ls.setup({ sources = sources, debounce = 1000, default_timeout = 5000 })
+        end,
+    }
+
+    use {
     	"windwp/nvim-autopairs",
         config = function() require("nvim-autopairs").setup {} end
     }
@@ -191,7 +292,32 @@ return require('packer').startup(function(use)
     use 'rcarriga/nvim-dap-ui'
     use 'theHamsta/nvim-dap-virtual-text'
 	use 'ray-x/guihua.lua'
-	use 'neovim/nvim-lspconfig'
+	use {
+        'neovim/nvim-lspconfig',
+        config = function()
+            
+            vim.api.nvim_set_keymap("n", "K",     "<Cmd>lua vim.lsp.buf.hover()<CR>", {noremap = true})
+            vim.api.nvim_set_keymap("n", "gd",    "<Cmd>lua vim.lsp.buf.definition()<CR>", {noremap = true})
+            vim.api.nvim_set_keymap("n", "gD",    "<Cmd>lua vim.lsp.buf.declaration()<CR>", {noremap = true})
+            vim.api.nvim_set_keymap("n", "gi",    "<Cmd>lua vim.lsp.buf.implementation()<CR>", {noremap = true})
+            vim.api.nvim_set_keymap("n", "gt",    "<Cmd>lua vim.lsp.buf.type_definition()<CR>", {noremap = true})
+            vim.api.nvim_set_keymap("n", "gr",    "<Cmd>lua vim.lsp.buf.references()<CR>", {noremap = true})
+            vim.api.nvim_set_keymap("n", "<C-k>", "<Cmd>lua vim.lsp.buf.signature_help()<CR>", {noremap = true})
+            vim.api.nvim_set_keymap("n", "gl",    "<Cmd>lua vim.diagnostic.open_float()<CR>", {noremap = true})
+            
+            -- require("lspconfig").rust_analyzer.setup({})
+            
+            -- Global mappings.
+            -- See `:help vim.diagnostic.*` for documentation on any of the below functions
+            -- vim.keymap.set('n', '<space>e', vim.diagnostic.open_float)
+            -- vim.keymap.set('n', '[d', vim.diagnostic.goto_prev)
+            -- vim.keymap.set('n', ']d', vim.diagnostic.goto_next)
+            -- vim.keymap.set('n', '<space>q', vim.diagnostic.setloclist)
+            
+            -- Use LspAttach autocommand to only map the following keys
+            -- after the language server attaches to the current buffer
+        end,
+    }
 	use {
         'nvim-treesitter/nvim-treesitter', 
     }
@@ -238,9 +364,9 @@ return require('packer').startup(function(use)
             cmp.setup.cmdline(':', {
                 mapping = cmp.mapping.preset.cmdline(),
                 sources = cmp.config.sources({
-                    { name = 'path' }
+                    { name = 'path' , keyword_length = 4 }
                 }, {
-                    { name = 'cmdline' }
+                    { name = 'cmdline', keyword_length = 4 }
                 })
             })
             cmp.setup({
