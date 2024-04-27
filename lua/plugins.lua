@@ -24,6 +24,29 @@ vim.cmd([[
 vim.g.mapleader = " "
 
 return require('packer').startup(function(use)
+
+    use {
+        "github/copilot.vim",
+        config = function() 
+            vim.g.copilot_no_tab_map = true
+            vim.g.copilot_assume_mapped = true
+            vim.g.copilot_tab_fallback = ""
+            vim.g.copilot_filetypes = {
+                ["*"] = false,
+                ["javascript"] = true,
+                ["typescript"] = true,
+                ["lua"] = false,
+                ["rust"] = true,
+                ["c"] = true,
+                ["c#"] = true,
+                ["c++"] = true,
+                ["go"] = true,
+                ["python"] = true,
+                ["gdscript"] = true,
+              }
+        end
+    }
+
 	use { 'wbthomason/packer.nvim' }
 
     use {
@@ -102,15 +125,32 @@ return require('packer').startup(function(use)
     }
     use { 'h-hg/fcitx.nvim' }
 
-    use { 
-        'catppuccin/nvim', 
-        as = 'catppuccin', 
-        config = function() vim.cmd.colorscheme "catppuccin" end ,
+    use {
+        'catppuccin/nvim',
+        as = 'catppuccin',
+        -- config = function() vim.cmd.colorscheme "catppuccin" end ,
     }
-    use { 
+    use {
         "bluz71/vim-moonfly-colors",
         as = "moonfly",
-        -- config = function() vim.cmd.colorscheme "moonfly" end,
+        config = function() vim.cmd.colorscheme "moonfly" end,
+    }
+
+    use {
+        "folke/neodev.nvim",
+        config = function()
+            require("neodev").setup({})
+            local lspconfig = require("lspconfig")
+            lspconfig.lua_ls.setup({
+                setting = {
+                    Lua = {
+                        completion = {
+                            callSnippet = "Replace"
+                        }
+                    }
+                }
+            })
+        end
     }
 
     use {
@@ -125,18 +165,19 @@ return require('packer').startup(function(use)
         "williamboman/mason-lspconfig.nvim",
         config = function()
             require("mason-lspconfig").setup()
-        end
+        end,
     }
 
   use {
       "simrat39/rust-tools.nvim",
       config = function()
+
+        require("mason").setup({})
+        require("mason-lspconfig").setup({})
+
         vim.o.completeopt = "menuone,noinsert,noselect"
-        
         vim.opt.shortmess = vim.opt.shortmess + "c"
-        
-        rt = require("rust-tools")
-        
+        local rt = require("rust-tools")
         local function on_attach(client, bufnr)
           -- This callback is called when the LSP is atttached/enabled for this buffer
           -- we could set keymaps related to LSP, etc here.
@@ -145,7 +186,6 @@ return require('packer').startup(function(use)
               -- Code action groups
               vim.keymap.set("n", "<Leader>a", rt.code_action_group.code_action_group, { buffer = bufnr })
         end
-        
         -- Configure LSP through rust-tools.nvim plugin.
         -- rust-tools will configure and enable certain LSP features for us.
         -- See https://github.com/simrat39/rust-tools.nvim#configuration
@@ -161,7 +201,6 @@ return require('packer').startup(function(use)
               other_hints_prefix = "",
             },
           },
-        
           -- all the opts to send to nvim-lspconfig
           -- these override the defaults set by rust-tools.nvim
           -- see https://github.com/neovim/nvim-lspconfig/blob/master/CONFIG.md#rust_analyzer
@@ -180,7 +219,7 @@ return require('packer').startup(function(use)
             },
           },
         }
-        opts.server = server
+        -- opts.server = server
         
         require("rust-tools").setup(opts)
       end,
@@ -190,21 +229,27 @@ return require('packer').startup(function(use)
       },
   }
 
-    use { 
+    use ({
         "jose-elias-alvarez/typescript.nvim",
         config = function() 
+            require("mason").setup()
+            require("mason-lspconfig").setup()
+            require("lspconfig").tsserver.setup({})
             require("typescript").setup({})
 
             vim.keymap.set('n', '<space>e', vim.diagnostic.open_float)
             vim.keymap.set('n', '[d', vim.diagnostic.goto_prev)
             vim.keymap.set('n', ']d', vim.diagnostic.goto_next)
             vim.keymap.set('n', '<space>q', vim.diagnostic.setloclist)
-        end
-    }
+        end,
+      requires = {
+        "neovim/nvim-lspconfig",
+      },
+    })
 
 
 	use ({
-        'howiieyu/go.nvim',
+        'ray-x/go.nvim',
         config = function()
             require("mason-lspconfig").setup()
             local cap = require('cmp_nvim_lsp').default_capabilities(vim.lsp.protocol.make_client_capabilities())
@@ -221,9 +266,21 @@ return require('packer').startup(function(use)
             vim.api.nvim_create_autocmd("BufWritePre", {
                 pattern = "*.go",
                 callback = function()
-                    require('go.format').goimport()
+                    require('go.format').goimports()
                 end,
                 group = format_sync_grp,
+            })
+
+            local null = require("null-ls")
+
+            null.register({
+                method = null.methods.CODE_ACTION,
+                filetypes = {"go"},
+                generator = {
+                    fn = function(context)
+
+                    end,
+                }
             })
 
             -- local null_ls = require("null-ls")
@@ -236,17 +293,16 @@ return require('packer').startup(function(use)
 
 
             require("go").setup({
-                goimport = 'gopls',
-                lsp_cfg = false,
+                lsp_cfg = true,
                 run_in_floaterm = true,
                 capabilities = cap,
                 goimport = 'gopls', -- if set to 'gopls' will use golsp format
                 gofmt = 'gofumpt', -- if set to gopls will use golsp format
-                max_line_len = 120,
+                -- max_line_len = 120,
                 lsp_document_formatting = true,
                 luasnip = true,
             })
-            cfg = require("go.lsp").config()
+            local cfg = require("go.lsp").config()
             require("lspconfig").gopls.setup(cfg)
         end,
         requires = {
@@ -262,26 +318,27 @@ return require('packer').startup(function(use)
     })
 
     use {
-        "jose-elias-alvarez/null-ls.nvim",
+        "nvimtools/none-ls.nvim",
         config = function()
             local null_ls = require("null-ls")
-            
             local sources = {
                 null_ls.builtins.formatting.stylua,
                 null_ls.builtins.formatting.golines.with({
                     extra_args = {
-                        "--max-len=180",
+                        "--max-len=120",
                         "--base-formatter=gofumpt",
                     },
                 }),
+                null_ls.builtins.diagnostics.golangci_lint,
 
                 -- null_ls.builtins.diagnostics.eslint,
-                null_ls.builtins.diagnostics.revive,
+                -- null_ls.builtins.diagnostics.revive,
                 null_ls.builtins.completion.spell,
             }
 
             null_ls.setup({ sources = sources, debounce = 1000, default_timeout = 5000 })
         end,
+        requires = { "nvim-lua/plenary.nvim" },
     }
 
     use {
@@ -295,7 +352,6 @@ return require('packer').startup(function(use)
 	use {
         'neovim/nvim-lspconfig',
         config = function()
-            
             vim.api.nvim_set_keymap("n", "K",     "<Cmd>lua vim.lsp.buf.hover()<CR>", {noremap = true})
             vim.api.nvim_set_keymap("n", "gd",    "<Cmd>lua vim.lsp.buf.definition()<CR>", {noremap = true})
             vim.api.nvim_set_keymap("n", "gD",    "<Cmd>lua vim.lsp.buf.declaration()<CR>", {noremap = true})
@@ -319,15 +375,55 @@ return require('packer').startup(function(use)
         end,
     }
 	use {
-        'nvim-treesitter/nvim-treesitter', 
+        'nvim-treesitter/nvim-treesitter',
+        config = function()
+            require("nvim-treesitter.configs").setup({
+                ensure_installed = {"go"},
+                sync_install = true,
+                auto_install = false,
+                ignore_install = {},
+                highlight = {
+                    enable = true,
+                },
+                playground = {
+                    enable = true,
+                    disable = {},
+                    updatetime = 25, -- Debounced time for highlighting nodes in the playground from source code
+                    persist_queries = false, -- Whether the query persists across vim sessions
+                    keybindings = {
+                      toggle_query_editor = 'o',
+                      toggle_hl_groups = 'i',
+                      toggle_injected_languages = 't',
+                      toggle_anonymous_nodes = 'a',
+                      toggle_language_display = 'I',
+                      focus_language = 'f',
+                      unfocus_language = 'F',
+                      update = 'R',
+                      goto_node = '<cr>',
+                      show_help = '?',
+                    },
+                  }
+            })
+        end
+    }
+
+    use {
+        'nvim-treesitter/playground',
     }
 
     use({
     	"L3MON4D3/LuaSnip",
     	-- follow latest release.
-    	tag = "v1.*", -- Replace <CurrentMajor> by the latest released major (first number of latest release)
+    	tag = "v2.*", -- Replace <CurrentMajor> by the latest released major (first number of latest release)
     	-- install jsregexp (optional!:).
-    	run = "make install_jsregexp"
+    	run = "make install_jsregexp",
+        config = function ()
+            require("luasnip").setup({
+                	history = true,
+	                region_check_events = "InsertEnter",
+	                delete_check_events = "TextChanged,InsertLeave",
+            })
+        end
     })
 
     -- auto complete
@@ -335,14 +431,14 @@ return require('packer').startup(function(use)
     use 'hrsh7th/cmp-buffer'
     use 'hrsh7th/cmp-path'
     use 'hrsh7th/cmp-cmdline'
-    use 'saadparwaiz1/cmp_luasnip' 
+    use 'saadparwaiz1/cmp_luasnip'
     use {
         'hrsh7th/nvim-cmp',
         config = function()
             local has_words_before = function()
                 unpack = unpack or table.unpack
                 local line, col = unpack(vim.api.nvim_win_get_cursor(0))
-                return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match('%s') == nil 
+                return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match('%s') == nil
             end
             local cmp = require("cmp")
             local luasnip = require("luasnip")
@@ -370,11 +466,11 @@ return require('packer').startup(function(use)
                 })
             })
             cmp.setup({
-                snippet = { 
+                snippet = {
                     expand = function(args)
                         luasnip.lsp_expand(args.body)
                     end},
-                mapping = cmp.mapping.preset.insert({ 
+                mapping = cmp.mapping.preset.insert({
                     ['<C-b>'] = cmp.mapping.scroll_docs(-4),
                     ['<C-f>'] = cmp.mapping.scroll_docs(4), 
                     ['<C-e>'] = cmp.mapping.abort(),
@@ -391,6 +487,11 @@ return require('packer').startup(function(use)
                     }), 
                     ["<Tab>"] = cmp.mapping(function(fallback)
                                  -- This little snippet will confirm with tab, and if no entry is selected, will confirm the first item
+                                local copilot_keys = vim.fn['copilot#Accept']()
+                                if copilot_keys ~= '' and type(copilot_keys) == 'string' then
+                                    vim.api.nvim_feedkeys(copilot_keys, 'i', true)
+                                    return
+                                end
                                 if cmp.visible() then
                                     cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
                                     return
