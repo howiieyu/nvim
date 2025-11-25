@@ -1,0 +1,21 @@
+require("blink.cmp").setup({
+	keymap = {
+		preset = 'default',
+		['<S-Tab>'] = { 'select_prev', 'fallback' },
+		['<Tab>'] = { 'select_next', 'fallback' },
+		['<CR>'] = { 'select_and_accept', 'fallback' },
+	},
+	completion = {
+		list = { selection = { preselect = false, auto_insert = false } },
+		menu = {
+			draw = {
+				columns = {
+					{ "label",     "label_description", gap = 1 },
+					{ "kind_icon", "kind" }
+				},
+			}
+		},
+		documentation = { auto_show = true, auto_show_delay_ms = 500 },
+	},
+	fuzzy = { implementation = "lua" },
+})
